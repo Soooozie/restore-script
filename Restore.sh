@@ -63,7 +63,10 @@ echo "password = $RAND_PASS" >> .my.cnf
 #automating mysql_secure_installation items
 mysql -e "DROP USER ''@'localhost';"
 mysql -e "DROP USER ''@'$(hostname)';"
+mysql -e "DELETE FROM mysql.user WHERE USER='';"
+mysql -e "DELETE FROM mysql.user WHERE USER='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');"
 mysql -e "DROP DATABASE test;"
+mysql -e "DELETE FROM mysql.db WHERE Db='test' OR Db='test\_%';"
 mysql -e "FLUSH PRIVILEGES;"
 ######################################################################
 
