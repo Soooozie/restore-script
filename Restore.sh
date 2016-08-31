@@ -142,22 +142,25 @@ mysql -e "FLUSH PRIVILEGES;"
 
 #####################################################################
 #create backups file - refer to backup script for details
-echo "TEMP_DIR=$(mktemp -d)" >> backup.sh
-echo "DEST=$TEMP_DIR" >> backup.sh
-echo "ARCHIVE_FILE="backup.tgz"" >> backup.sh
-echo "tar -czf $DEST/$ARCHIVE_FILE $DOCROOT ${DB_CONFIG[*]} ${WEB_SERVER_CONFIG[*]}" >> backup.sh
-echo "NOW=$(date +%s)" >> backup.sh
-echo "FILENAME="db_backup"" >> backup.sh
-echo "BACKUP_FOLDER="$DEST"" >> backup.sh
-echo "FULLPATHBACKUPFILE="$BACKUP_FOLDER/$FILENAME"" >> backup.sh
-echo "mysqldump $DATABASE_NAME | gzip > $BACKUP_FOLDER/$FILENAME.sql.gz" >> backup.sh
-echo "cd $DEST" >> backup.sh
-echo "tar -cf backup_complete_$NOW.tar $ARCHIVE_FILE $FILENAME.sql.gz" >> backup.sh
-echo "rm $DEST/$ARCHIVE_FILE" >> backup.sh
-echo "rm $DEST/$FILENAME.sql.gz" >> backup.sh
+#in order to echo variables into a file, escape the $ out
+echo '#!/bin/bash' >> backup.sh
+echo "source ./vars.sh" >> backup.sh
+echo "TEMP_DIR=\$(mktemp -d)" >> backup.sh
+echo "DEST=\$TEMP_DIR" >> backup.sh
+echo "ARCHIVE_FILE=\"backup.tgz\"" >> backup.sh
+echo "tar -czf \$DEST/\$ARCHIVE_FILE \$DOCROOT \${DB_CONFIG[*]} \${WEB_SERVER_CONFIG[*]}" >> backup.sh
+echo "NOW=\$(date +%s)" >> backup.sh
+echo "FILENAME=\"db_backup\"" >> backup.sh
+echo "BACKUP_FOLDER=\"\$DEST\"" >> backup.sh
+echo "FULLPATHBACKUPFILE=\"\$BACKUP_FOLDER/\$FILENAME\"" >> backup.sh
+echo "mysqldump \$DATABASE_NAME | gzip > \$BACKUP_FOLDER/\$FILENAME.sql.gz" >> backup.sh
+echo "cd \$DEST" >> backup.sh
+echo "tar -cf backup_complete_\$NOW.tar \$ARCHIVE_FILE \$FILENAME.sql.gz" >> backup.sh
+echo "rm \$DEST/\$ARCHIVE_FILE" >> backup.sh
+echo "rm \$DEST/\$FILENAME.sql.gz" >> backup.sh
 echo "cd ~" >> backup.sh
-echo "s3cmd put $DEST/backup_complete_$NOW.tar $BUCKET_NAME" >> backup.sh
-echo " rm -r $DEST" >> backup.sh
+echo "s3cmd put \$DEST/backup_complete_\$NOW.tar \$BUCKET_NAME" >> backup.sh
+echo "rm -r \$DEST" >> backup.sh
 ######################################################################
 
 cp -rf $BACKUP_FROM_BUCKET_DOCROOT /var/www/
@@ -175,7 +178,8 @@ echo "*  12  *  *  fri root backup.sh" >> /etc/crontab
 
 ######################################################################
 #create wp update file - see WP Update Script for details
-echo "cd $WORDPRESS_LOCATION" >> wp-update.sh
+echo '#!/bin/bash' >> wp-update.sh
+echo "cd \$WORDPRESS_LOCATION" >> wp-update.sh
 echo "wp core update" >> wp-update.sh
 echo "wp plugin update --all" >> wp-update.sh
 ######################################################################
