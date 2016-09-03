@@ -137,9 +137,6 @@ mysql -e "CREATE USER $USERNAME@'%' IDENTIFIED BY '$DATABASE_PASSWORD';"
 mysql -e "GRANT ALL PRIVILEGES ON $DATABASE_NAME.* TO $USERNAME@'%' IDENTIFIED BY '$DATABASE_PASSWORD';"
 mysql -e "FLUSH PRIVILEGES;"
 
-#su backups
-#cd ~
-
 #####################################################################
 #create backups file - refer to backup script for details
 #in order to echo variables into a file, escape the $ out
