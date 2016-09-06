@@ -81,15 +81,13 @@ tar xzf v1.6.1.tar.gz
 cd s3cmd-1.6.1
 
 #copy s3cmd and S3 directories into the bin folder initially created for s3cmd
-cp -R s3cmd S3 ~/bin
+cp -R s3cmd S3 /opt/
 
 cd ~
 
-#add bin directory to your path so you can execute the script
-echo "export PATH=$HOME/bin:$PATH" >> ~/.bashrc
-
-#execute bash profile to take effect of changes
-. ~/.bashrc
+#add symlink to /usr/bin
+ln -s /opt/s3cmd /usr/bin
+ln -s /opt/S3 /usr/bin
 
 
 #######################################################################
@@ -137,29 +135,54 @@ mysql -e "CREATE USER $USERNAME@'%' IDENTIFIED BY '$DATABASE_PASSWORD';"
 mysql -e "GRANT ALL PRIVILEGES ON $DATABASE_NAME.* TO $USERNAME@'%' IDENTIFIED BY '$DATABASE_PASSWORD';"
 mysql -e "FLUSH PRIVILEGES;"
 
+#create backups user
+useradd backups
+
+USER_PASS=$(date +%s | sha256sum | base64 | head -c 32)
+
+echo "backups:$USER_PASS" | chpasswd
+
+echo "[client]" >> /home/backups/.my.cnf
+echo "user = backups" >> /home/backups/.my.cnf
+echo "password = $USER_PASS" >> /home/backups/.my.cnf
+
+#add mysql backups user
+mysql -e "CREATE USER backups@localhost IDENTIFIED BY '$USER_PASS';"
+mysql -e "GRANT SELECT, LOCK TABLES on $DATABASE_NAME.* TO backups@localhost IDENTIFIED BY '$USER_PASS';"
+mysql -e "FLUSH PRIVILEGES;"
+
 #####################################################################
 #create backups file - refer to backup script for details
 #in order to echo variables into a file, escape the $ out
-echo '#!/bin/bash' >> backup.sh
-echo "source ./vars.sh" >> backup.sh
-echo "TEMP_DIR=\$(mktemp -d)" >> backup.sh
-echo "DEST=\$TEMP_DIR" >> backup.sh
-echo "ARCHIVE_FILE=\"backup.tgz\"" >> backup.sh
-echo "tar -czf \$DEST/\$ARCHIVE_FILE \$DOCROOT \${DB_CONFIG[*]} \${WEB_SERVER_CONFIG[*]}" >> backup.sh
-echo "NOW=\$(date +%s)" >> backup.sh
-echo "FILENAME=\"db_backup\"" >> backup.sh
-echo "BACKUP_FOLDER=\"\$DEST\"" >> backup.sh
-echo "FULLPATHBACKUPFILE=\"\$BACKUP_FOLDER/\$FILENAME\"" >> backup.sh
-echo "mysqldump \$DATABASE_NAME | gzip > \$BACKUP_FOLDER/\$FILENAME.sql.gz" >> backup.sh
-echo "cd \$DEST" >> backup.sh
-echo "tar -cf backup_complete_\$NOW.tar \$ARCHIVE_FILE \$FILENAME.sql.gz" >> backup.sh
-echo "rm \$DEST/\$ARCHIVE_FILE" >> backup.sh
-echo "rm \$DEST/\$FILENAME.sql.gz" >> backup.sh
-echo "cd ~" >> backup.sh
-echo "s3cmd put \$DEST/backup_complete_\$NOW.tar \$BUCKET_NAME" >> backup.sh
-echo "rm -r \$DEST" >> backup.sh
+echo '#!/bin/bash' >> /home/backups/backup.sh
+echo "source ./vars.sh" >> /home/backups/backup.sh
+echo "TEMP_DIR=\$(mktemp -d)" >> /home/backups/backup.sh
+echo "DEST=\$TEMP_DIR" >> /home/backups/backup.sh
+echo "ARCHIVE_FILE=\"backup.tgz\"" >> /home/backups/backup.sh
+echo "tar -czf \$DEST/\$ARCHIVE_FILE \$DOCROOT \${DB_CONFIG[*]} \${WEB_SERVER_CONFIG[*]}" >> /home/backups/backup.sh
+echo "NOW=\$(date +%s)" >> /home/backups/backup.sh
+echo "FILENAME=\"db_backup\"" >> /home/backups/backup.sh
+echo "BACKUP_FOLDER=\"\$DEST\"" >> /home/backups/backup.sh
+echo "FULLPATHBACKUPFILE=\"\$BACKUP_FOLDER/\$FILENAME\"" >> /home/backups/backup.sh
+echo "mysqldump \$DATABASE_NAME | gzip > \$BACKUP_FOLDER/\$FILENAME.sql.gz" >> /home/backups/backup.sh
+echo "cd \$DEST" >> /home/backups/backup.sh
+echo "tar -cf backup_complete_\$NOW.tar \$ARCHIVE_FILE \$FILENAME.sql.gz" >> /home/backups/backup.sh
+echo "rm \$DEST/\$ARCHIVE_FILE" >> /home/backups/backup.sh
+echo "rm \$DEST/\$FILENAME.sql.gz" >> /home/backups/backup.sh
+echo "cd ~" >> /home/backups/backup.sh
+echo "s3cmd put \$DEST/backup_complete_\$NOW.tar \$BUCKET_NAME" >> /home/backups/backup.sh
+echo "rm -r \$DEST" >> /home/backups/backup.sh
 ######################################################################
 
+chmod +x /home/backups/backup.sh
+
+#put your vars.sh file into backups home folder for use when running backup Script
+cp vars.sh /home/backups
+
+#do the same for the s3config file
+cp .s3cfg /home/backups
+
+#copy files from bucket into proper places
 cp -rf $BACKUP_FROM_BUCKET_DOCROOT /var/www/
 cp -rf $BACKUP_FROM_BUCKET_DB_CONFIG_1 /etc/
 cp -rf $BACKUP_FROM_BUCKET_DB_CONFIG_2 /etc/
@@ -170,17 +193,25 @@ cp -rf $BACKUP_FROM_BUCKET_WSC_3 /etc/httpd/
 systemctl restart httpd
 
 #Automate backups
-echo "*  12  *  *  fri root backup.sh" >> /etc/crontab
+echo "*  12  *  *  fri backups /home/backups/backup.sh" >> /etc/crontab
 
 
 ######################################################################
 #create wp update file - see WP Update Script for details
-echo '#!/bin/bash' >> wp-update.sh
-echo "cd \$WORDPRESS_LOCATION" >> wp-update.sh
-echo "wp core update" >> wp-update.sh
-echo "wp plugin update --all" >> wp-update.sh
+echo '#!/bin/bash' >> /home/backups/wp-update.sh
+echo "source ./vars.sh" >> /home/backups/wp-update.sh
+echo "cd \$WORDPRESS_LOCATION" >> /home/backups/wp-update.sh
+echo "/usr/local/bin/wp core update" >> /home/backups/wp-update.sh
+echo "/usr/local/bin/wp plugin update --all" >> /home/backups/wp-update.sh
 ######################################################################
 
+chmod +x /home/backups/wp-update.sh
 
 #Automate wp updates
-echo "*  0  *  *  * root wp-update.sh" >> /etc/crontab
+echo "*  0  *  *  * backups /home/backups/wp-update.sh" >> /etc/crontab
+
+#remove the mess
+rm -rf *.tar
+rm -rf *.tgz
+rm -rf *.tar.gz
+rm -rf *.sql
