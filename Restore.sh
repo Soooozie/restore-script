@@ -9,7 +9,8 @@ yum update -y
 #install packages
 yum install httpd \
             mariadb-server  \
-            mariadb php \
+            mariadb \
+            php \
             php-mysql \
             php-gd \
             python-dateutil -y
