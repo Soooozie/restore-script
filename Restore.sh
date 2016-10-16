@@ -60,6 +60,9 @@ mysqladmin -u root password "$RAND_PASS"
 #place new password in .my.cnf for passwordless login
 echo "password = $RAND_PASS" >> .my.cnf
 
+#change privileges on .my.cnf file
+chmod 0600 .my.cnf
+
 #######################################################################
 #automating mysql_secure_installation items
 mysql -e "DROP USER ''@'localhost';"
@@ -102,6 +105,9 @@ echo "enable_multipart = True" >> .s3cfg
 echo "multipart_chunk_size_mb = 15" >> .s3cfg
 echo "use_https = True" >> .s3cfg
 #########################################################################
+
+#change permissions on .s3cfg file
+chmod 0600 .s3cfg
 
 #install wp-cli
 curl -O https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar
@@ -147,6 +153,10 @@ echo "[client]" >> /home/backups/.my.cnf
 echo "user = backups" >> /home/backups/.my.cnf
 echo "password = $USER_PASS" >> /home/backups/.my.cnf
 
+#set permissions on backups .my.cnf file
+chmod 0600 /home/backups/.my.cnf
+chown backups:backups /home/backups/.my.cnf
+
 #add mysql backups user
 mysql -e "CREATE USER backups@localhost IDENTIFIED BY '$USER_PASS';"
 mysql -e "GRANT SELECT, LOCK TABLES on $DATABASE_NAME.* TO backups@localhost IDENTIFIED BY '$USER_PASS';"
@@ -182,6 +192,7 @@ cp vars.sh /home/backups
 
 #do the same for the s3config file
 cp .s3cfg /home/backups
+chown backups:backups /home/backups/.s3cfg
 
 #copy files from bucket into proper places
 cp -rf $BACKUP_FROM_BUCKET_DOCROOT /var/www/
@@ -208,11 +219,19 @@ echo "/usr/local/bin/wp plugin update --all" >> /home/backups/wp-update.sh
 
 chmod +x /home/backups/wp-update.sh
 
-#Automate wp updates
+#Automate wp updates if you'd like 
 echo "*  0  *  *  * backups /home/backups/wp-update.sh" >> /etc/crontab
+
+#permission settings for apache
+cd $WORDPRESS_LOCATION/wp-content
+chown apache uploads
+
+cd ~
 
 #remove the mess
 rm -rf *.tar
 rm -rf *.tgz
 rm -rf *.tar.gz
 rm -rf *.sql
+rm -rf var/
+rm -rf etc/
