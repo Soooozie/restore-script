@@ -219,12 +219,12 @@ echo "/usr/local/bin/wp plugin update --all" >> /home/backups/wp-update.sh
 
 chmod +x /home/backups/wp-update.sh
 
-#Automate wp updates if you'd like 
+#Automate wp updates if you'd like
 echo "*  0  *  *  * backups /home/backups/wp-update.sh" >> /etc/crontab
 
 #permission settings for apache
 cd $WORDPRESS_LOCATION/wp-content
-chown apache uploads
+chown apache -R uploads/
 
 cd ~
 
