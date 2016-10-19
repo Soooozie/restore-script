@@ -14,8 +14,10 @@ yum install httpd \
             php-mysql \
             php-gd \
             python-dateutil \
-            epel-release \
-            varnish -y
+            epel-release -y
+
+#install varnish
+yum install varnish -y
 
 #start apache
 systemctl start httpd.service
@@ -176,7 +178,7 @@ echo "source ./vars.sh" >> /home/backups/backup.sh
 echo "TEMP_DIR=\$(mktemp -d)" >> /home/backups/backup.sh
 echo "DEST=\$TEMP_DIR" >> /home/backups/backup.sh
 echo "ARCHIVE_FILE=\"backup.tgz\"" >> /home/backups/backup.sh
-echo "tar -czf \$DEST/\$ARCHIVE_FILE \$DOCROOT \${DB_CONFIG[*]} \${WEB_SERVER_CONFIG[*]} \$VARNISH_PARAMS \$VARNISH_DEFAULT_VCL" >> /home/backups/backup.sh
+echo "tar -czf \$DEST/\$ARCHIVE_FILE \$DOCROOT \${DB_CONFIG[*]} \${WEB_SERVER_CONFIG[*]} \$VARNISH" >> /home/backups/backup.sh
 echo "NOW=\$(date +%s)" >> /home/backups/backup.sh
 echo "FILENAME=\"db_backup\"" >> /home/backups/backup.sh
 echo "BACKUP_FOLDER=\"\$DEST\"" >> /home/backups/backup.sh
@@ -207,9 +209,9 @@ cp -rf $BACKUP_FROM_BUCKET_DB_CONFIG_2 /etc/
 cp -rf $BACKUP_FROM_BUCKET_WSC_1 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_WSC_2 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_WSC_3 /etc/httpd/
-cp -rf $BACKUP_FROM_BUCKET_VARNISH_PARAMS /etc/varnish/
-cp -rf $BACKUP_FROM_BUCKET_VARNISH_DEFAULT_VCL /etc/varnish/ 
+cp -rf $BACKUP_FROM_BUCKET_VARNISH /etc/
 
+systemctl restart varnish 
 systemctl restart httpd
 
 #Automate backups
