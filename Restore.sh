@@ -211,7 +211,7 @@ cp -rf $BACKUP_FROM_BUCKET_WSC_2 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_WSC_3 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_VARNISH /etc/
 
-systemctl restart varnish 
+systemctl restart varnish
 systemctl restart httpd
 
 #Automate backups
@@ -233,8 +233,12 @@ chmod +x /home/backups/wp-update.sh
 echo "*  0  *  *  * backups /home/backups/wp-update.sh" >> /etc/crontab
 
 #permission settings for apache
+cd $WORDPRESS_LOCATION
+
+chown apache wp-cron.php 
+
 cd $WORDPRESS_LOCATION/wp-content
-chown apache uploads
+chown apache -R uploads
 
 cd ~
 
