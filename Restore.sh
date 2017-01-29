@@ -13,7 +13,11 @@ yum install httpd \
             php \
             php-mysql \
             php-gd \
-            python-dateutil -y
+            python-dateutil \
+            epel-release -y
+
+#install varnish
+yum install varnish -y
 
 #start apache
 systemctl start httpd.service
@@ -26,6 +30,10 @@ systemctl start mariadb
 
 #set mariadb to start when server is booted
 systemctl enable mariadb.service
+
+#start and enable varnish
+systemctl start varnish
+systemctl enable varnish
 
 ###############################################################
 #firewalld settings
@@ -170,7 +178,7 @@ echo "source ./vars.sh" >> /home/backups/backup.sh
 echo "TEMP_DIR=\$(mktemp -d)" >> /home/backups/backup.sh
 echo "DEST=\$TEMP_DIR" >> /home/backups/backup.sh
 echo "ARCHIVE_FILE=\"backup.tgz\"" >> /home/backups/backup.sh
-echo "tar -czf \$DEST/\$ARCHIVE_FILE \$DOCROOT \${DB_CONFIG[*]} \${WEB_SERVER_CONFIG[*]}" >> /home/backups/backup.sh
+echo "tar -czf \$DEST/\$ARCHIVE_FILE \$DOCROOT \${DB_CONFIG[*]} \${WEB_SERVER_CONFIG[*]} \$VARNISH" >> /home/backups/backup.sh
 echo "NOW=\$(date +%s)" >> /home/backups/backup.sh
 echo "FILENAME=\"db_backup\"" >> /home/backups/backup.sh
 echo "BACKUP_FOLDER=\"\$DEST\"" >> /home/backups/backup.sh
@@ -201,7 +209,9 @@ cp -rf $BACKUP_FROM_BUCKET_DB_CONFIG_2 /etc/
 cp -rf $BACKUP_FROM_BUCKET_WSC_1 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_WSC_2 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_WSC_3 /etc/httpd/
+cp -rf $BACKUP_FROM_BUCKET_VARNISH /etc/
 
+systemctl restart varnish
 systemctl restart httpd
 
 #Automate backups
@@ -223,8 +233,12 @@ chmod +x /home/backups/wp-update.sh
 echo "*  0  *  *  * backups /home/backups/wp-update.sh" >> /etc/crontab
 
 #permission settings for apache
+cd $WORDPRESS_LOCATION
+
+chown apache wp-cron.php
+
 cd $WORDPRESS_LOCATION/wp-content
-chown apache -R uploads/
+chown apache -R uploads
 
 cd ~
 
