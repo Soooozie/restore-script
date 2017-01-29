@@ -235,7 +235,7 @@ echo "*  0  *  *  * backups /home/backups/wp-update.sh" >> /etc/crontab
 #permission settings for apache
 cd $WORDPRESS_LOCATION
 
-chown apache wp-cron.php 
+chown apache wp-cron.php
 
 cd $WORDPRESS_LOCATION/wp-content
 chown apache -R uploads
