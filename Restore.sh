@@ -14,6 +14,7 @@ yum install httpd \
             php-mysql \
             php-gd \
             python-dateutil \
+            firewalld \
             epel-release -y
 
 #install varnish
@@ -30,6 +31,9 @@ systemctl start mariadb
 
 #set mariadb to start when server is booted
 systemctl enable mariadb.service
+
+#install firewalld
+systemctl start firewalld
 
 #start and enable varnish
 systemctl start varnish
@@ -211,7 +215,7 @@ cp -rf $BACKUP_FROM_BUCKET_WSC_2 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_WSC_3 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_VARNISH /etc/
 
-systemctl restart varnish
+#restart apache 
 systemctl restart httpd
 
 #Automate backups
@@ -249,3 +253,6 @@ rm -rf *.tar.gz
 rm -rf *.sql
 rm -rf var/
 rm -rf etc/
+
+#restart varnish last
+systemctl restart varnish
