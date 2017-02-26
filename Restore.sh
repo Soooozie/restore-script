@@ -260,7 +260,7 @@ sed -ie "s/$PORT/80/g" /etc/varnish/varnish.params
 systemctl restart varnish
 
 #generate ssl certificate
-certbot certonly --non-interactive --agree-tos --email $EMAIL -d staging.$WEBSITE.com --webroot -w /var/www/$WEBSITE/public_html --staging
+certbot certonly --non-interactive --agree-tos --email $EMAIL -d $WEBSITE --webroot -w $FULL_DOCROOT --staging
 
 #backup nginx conf file
 cp -rf $BACKUP_FROM_BUCKET_NGINX /etc/
