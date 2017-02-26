@@ -4,7 +4,8 @@ clear
 
 source ./vars.sh
 
-yum update -y
+#this shit takes too long 
+#yum update -y
 
 #install packages
 yum install httpd \
@@ -19,6 +20,12 @@ yum install httpd \
 
 #install varnish
 yum install varnish -y
+
+#install nginx
+yum install nginx -y
+
+#install certbot
+yum install certbot -y
 
 #start apache
 systemctl start httpd.service
@@ -182,7 +189,7 @@ echo "source ./vars.sh" >> /home/backups/backup.sh
 echo "TEMP_DIR=\$(mktemp -d)" >> /home/backups/backup.sh
 echo "DEST=\$TEMP_DIR" >> /home/backups/backup.sh
 echo "ARCHIVE_FILE=\"backup.tgz\"" >> /home/backups/backup.sh
-echo "tar -czf \$DEST/\$ARCHIVE_FILE \$DOCROOT \${DB_CONFIG[*]} \${WEB_SERVER_CONFIG[*]} \$VARNISH" >> /home/backups/backup.sh
+echo "tar -czf \$DEST/\$ARCHIVE_FILE \$DOCROOT \${DB_CONFIG[*]} \${WEB_SERVER_CONFIG[*]} \$VARNISH \$NGINX" >> /home/backups/backup.sh
 echo "NOW=\$(date +%s)" >> /home/backups/backup.sh
 echo "FILENAME=\"db_backup\"" >> /home/backups/backup.sh
 echo "BACKUP_FOLDER=\"\$DEST\"" >> /home/backups/backup.sh
@@ -214,8 +221,9 @@ cp -rf $BACKUP_FROM_BUCKET_WSC_1 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_WSC_2 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_WSC_3 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_VARNISH /etc/
+cp -rf $BACKUP_FROM_BUCKET_NGINX /nginx/
 
-#restart apache 
+#restart apache
 systemctl restart httpd
 
 #Automate backups
@@ -246,6 +254,16 @@ chown apache -R uploads
 
 cd ~
 
+#generate ssl certificate
+certbot certonly --non-interactive --agree-tos --email $EMAIL -d staging.$WEBSITE.com --webroot -w /var/www/$WEBSITE/public_html --staging
+
+#semanage ports - selinux
+semanage port -m -t varnishd_port_t -p tcp $PORT
+setsebool -P httpd_can_network_connect 1
+
+#adding auto renew to crontab
+echo "0  12  *  *  sun root certbot renew --pre-hook \"systemctl stop nginx\" --post-hook \"systemctl start nginx\"" >> /etc/crontab
+
 #remove the mess
 rm -rf *.tar
 rm -rf *.tgz
@@ -256,3 +274,6 @@ rm -rf etc/
 
 #restart varnish last
 systemctl restart varnish
+
+#restart nginx lastest
+systemctl restart nginx
