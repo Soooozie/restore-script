@@ -2,9 +2,9 @@
 
 clear
 
-source ./vars.sh
+source ~/vars.sh
 
-#this shit takes too long 
+#this shit takes too long
 #yum update -y
 
 #install packages
@@ -221,7 +221,6 @@ cp -rf $BACKUP_FROM_BUCKET_WSC_1 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_WSC_2 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_WSC_3 /etc/httpd/
 cp -rf $BACKUP_FROM_BUCKET_VARNISH /etc/
-cp -rf $BACKUP_FROM_BUCKET_NGINX /nginx/
 
 #restart apache
 systemctl restart httpd
@@ -254,14 +253,23 @@ chown apache -R uploads
 
 cd ~
 
+#need to get port 80 back for varnish so certbot can access website
+sed -ie "s/$PORT/80/g" /etc/varnish/varnish.params
+
+#restart varnish last
+systemctl restart varnish
+
 #generate ssl certificate
 certbot certonly --non-interactive --agree-tos --email $EMAIL -d staging.$WEBSITE.com --webroot -w /var/www/$WEBSITE/public_html --staging
+
+#backup nginx conf file
+cp -rf $BACKUP_FROM_BUCKET_NGINX /etc/
 
 #semanage ports - selinux
 semanage port -m -t varnishd_port_t -p tcp $PORT
 setsebool -P httpd_can_network_connect 1
 
-#adding auto renew to crontab
+#add auto renew to crontab
 echo "0  12  *  *  sun root certbot renew --pre-hook \"systemctl stop nginx\" --post-hook \"systemctl start nginx\"" >> /etc/crontab
 
 #remove the mess
@@ -272,8 +280,12 @@ rm -rf *.sql
 rm -rf var/
 rm -rf etc/
 
+#put port back to desired for varnish
+sed -ie "s/80/$PORT/g" /etc/varnish/varnish.params
+
 #restart varnish last
 systemctl restart varnish
 
 #restart nginx lastest
-systemctl restart nginx
+systemctl start nginx
+systemctl enable nginx
